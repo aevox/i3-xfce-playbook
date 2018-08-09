@@ -1,0 +1,87 @@
+---
+- name: Install packages using apt
+  apt:
+    pkg: '{{item}}'
+    force: 'yes'
+    state: present
+  with_items:
+    - ubuntu-drivers-common
+    - mesa-utils
+    - mesa-utils-extra
+    - scrot
+    - intel-microcode
+    - vim
+    - python-dev
+    - wget
+    - curl
+    - net-tools
+    - build-essential
+    - pulseaudio
+    - python-pip
+    - git
+    - git-gui
+    - tig
+    - tree
+    - python-virtualenv
+    - network-manager-gnome
+    - network-manager-openconnect-gnome
+    - blueman
+    - vlc
+    - feh
+    - ssh
+    - flake8
+    - gawk
+    - jq
+    - tmux
+    - zsh
+
+- name: Copy xorg.conf file
+  copy:
+    src: xorg/xorg.conf
+    dest: /etc/X11/xorg.conf
+    owner: root
+    group: root
+    mode: 'u=rw,g=r,o=r'
+
+- name: Download golang
+  get_url:
+    url: https://dl.google.com/go/go1.10.3.linux-amd64.tar.gz
+    dest: /tmp/go1.10.3.linux-amd64.tar.gz
+
+- name: Extract golang
+  unarchive:
+    src: /tmp/go1.10.3.linux-amd64.tar.gz
+    dest: /usr/local
+
+- name: create go directory
+  file:
+    path: /home/{{remote_user}}/go
+    recurse: 'yes'
+    state: directory
+    owner: '{{remote_user}}'
+    group: '{{remote_user}}'
+    mode: 'u=rwX'
+
+- name: Copy bash_profile file
+  copy:
+    src: bash/bash_profile
+    dest: /home/{{remote_user}}/.bash_profile
+    owner: '{{remote_user}}'
+    group: '{{remote_user}}'
+    mode: 'u=rw'
+
+- name: Copy bashrc file
+  copy:
+    src: bash/bashrc
+    dest: /home/{{remote_user}}/.bashrc
+    owner: '{{remote_user}}'
+    group: '{{remote_user}}'
+    mode: 'u=rw'
+
+- name: Copy gitconfig file
+  copy:
+    src: git/gitconfig
+    dest: /home/{{remote_user}}/.gitconfig
+    owner: '{{remote_user}}'
+    group: '{{remote_user}}'
+    mode: 'u=rw'

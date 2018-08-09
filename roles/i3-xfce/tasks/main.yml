@@ -1,0 +1,171 @@
+---
+# PPA is deactivated because there is no 18.04 version.
+#    - name: Add PPA repositories
+#      apt_repository: repo='{{item}}' state=present update_cache=true
+#      with_items:
+#       - ppa:aacebedo/libi3ipc-glib
+#       - ppa:aacebedo/xfce4-i3-workspaces-plugin
+
+- name: Install i3-gaps build dependencies
+  apt:
+    pkg: '{{item}}'
+    force: 'yes'
+    state: present
+  with_items:
+    - libxcb1-dev
+    - libxcb-keysyms1-dev
+    - libpango1.0-dev
+    - libxcb-util0-dev
+    - libxcb-icccm4-dev
+    - libyajl-dev
+    - libstartup-notification0-dev
+    - libxcb-randr0-dev
+    - libev-dev
+    - libxcb-cursor-dev
+    - libxcb-xinerama0-dev
+    - libxcb-xkb-dev
+    - libxkbcommon-dev
+    - libxkbcommon-x11-dev
+    - autoconf
+    - libxcb-xrm-dev
+
+- name: Get i3-gaps using git
+  git:
+    repo: 'https://github.com/Airblader/i3.git'
+    dest: /usr/local/src/i3-gaps
+    version: gaps
+
+- name: Build i3-gaps from sources 1/2
+  command: '{{item}}'
+  args:
+    chdir: /usr/local/src/i3-gaps
+  with_items:
+    - autoreconf --force --install
+    - rm -rf build/
+    - mkdir -p build
+
+- name: Build i3-gaps from sources 2/2
+  command: '{{item}}'
+  args:
+    chdir: /usr/local/src/i3-gaps/build
+    creates: /usr/bin/i3
+  with_items:
+    - ../configure --prefix=/usr --sysconfdir=/etc --disable-sanitizers
+    - make
+    - make install
+
+- name: Copy xlibi3ipc-glib deb
+  copy:
+    src: deb/libi3ipc-glib_0.6.0-1~146~ubuntu17.10.1_amd64.deb
+    dest: /usr/local/src/libi3ipc-glib_0.6.0/
+    owner: '{{remote_user}}'
+    group: '{{remote_user}}'
+    mode: 'u=rw'
+
+- name: Copy xfce4 configuration file patch
+  copy:
+    src: deb/xfce4-i3-workspaces-plugin_1.2.0-3~70~ubuntu17.10.1_amd64.deb
+    dest: /usr/local/src/xfce4-i3-workspaces-plugin_1.2.0/
+    owner: '{{remote_user}}'
+    group: '{{remote_user}}'
+    mode: 'u=rw'
+
+- name: Install libi3ipc-glib deb
+  apt:
+    deb: /usr/local/src/libi3ipc-glib_0.6.0/libi3ipc-glib_0.6.0-1~146~ubuntu17.10.1_amd64.deb
+    force: 'yes'
+    state: present
+
+- name: Install xfce4-i3-workspaces-plugin deb
+  apt:
+    deb: /usr/local/src/xfce4-i3-workspaces-plugin_1.2.0/xfce4-i3-workspaces-plugin_1.2.0-3~70~ubuntu17.10.1_amd64.deb
+    force: 'yes'
+    state: present
+
+- name: Check presence of i3 configuration directory
+  file:
+    path: /home/{{remote_user}}/.config/i3
+    state: directory
+
+- name: Copy i3 configuration files
+  copy:
+    src: i3/{{item}}
+    dest: /home/{{remote_user}}/.config/i3/{{item}}
+    owner: '{{remote_user}}'
+    group: '{{remote_user}}'
+    mode: 'u=rw'
+  with_items:
+    - "config"
+
+- name: Change i3 configuration directory ownership
+  file:
+    path: /home/{{remote_user}}/.i3
+    recurse: 'yes'
+    owner: '{{remote_user}}'
+    group: '{{remote_user}}'
+    mode: 'u=rwX'
+
+
+- name: Copy the autostart scripts
+  copy:
+    src: autostart/{{item}}
+    dest: /home/{{remote_user}}/.config/autostart/
+    owner: '{{remote_user}}'
+    group: '{{remote_user}}'
+    mode: 'u=rw'
+  with_items:
+    - compton.desktop
+    - i3.desktop
+    - xfce4-panel.desktop
+
+- name: Remove previous xfce4 sessions
+  file:
+    path: /home/{{remote_user}}/.cache/sessions
+    state: absent
+
+- name: Create xfce4 configuration directory in user home
+  file:
+    path: /home/{{remote_user}}/.config/xfce4/xfconf/xfce-perchannel-xml
+    state: directory
+    owner: '{{remote_user}}'
+    group: '{{remote_user}}'
+    mode: 'u=rw'
+
+- name: Copy new xfce4 configuration file
+  shell: cp /etc/xdg/xfce4/xfconf/xfce-perchannel-xml/xfce4-session.xml /home/{{remote_user}}/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-session.xml
+
+- name: Changing xfce4 configuration file ownership
+  file:
+    path: /home/{{remote_user}}/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-session.xml
+    owner: '{{remote_user}}'
+    group: '{{remote_user}}'
+    mode: 'u=rw'
+
+- name: Copy xfce4 configuration file patch
+  copy:
+    src: xfce/xfce4-session.xml.patch
+    dest: /tmp/
+    owner: '{{remote_user}}'
+    group: '{{remote_user}}'
+    mode: 'u=rw'
+
+- name: Apply patch on xfce4 configuration file
+  patch:
+    remote_src: true
+    src: /tmp/xfce4-session.xml.patch
+    dest: /home/{{remote_user}}/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-session.xml
+
+- name: Hide xfce-wm settings shortcut
+  lineinfile:
+    dest: /usr/share/applications/xfce-wm-settings.desktop
+    state: present
+    line: "Hidden=true"
+
+- name: Change ownership of ~/.config directory
+  file:
+    path: /home/{{remote_user}}/.config
+    recurse: 'yes'
+    state: 'directory'
+    owner: '{{remote_user}}'
+    group: '{{remote_user}}'
+    mode: 'u=rwX'

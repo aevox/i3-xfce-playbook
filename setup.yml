@@ -1,0 +1,10 @@
+---
+- hosts: localhost
+  vars:
+    remote_user: "marc"
+  gather_facts: 'no'
+  connection: local
+  roles:
+    - base
+    - xfce
+    - i3-xfce

@@ -1,0 +1,81 @@
+---
+- name: Install packages using apt
+  apt:
+    pkg: '{{item}}'
+    force: 'yes'
+    state: present
+  with_items:
+    - xfce4
+    - xfce4-terminal
+    - xfce4-panel
+    - xfce4-power-manager
+    - xfce4-power-manager-data
+    - xfce4-power-manager-plugins
+    - xfce4-notifyd
+    - xfce4-cpugraph-plugin
+    - xfce4-pulseaudio-plugin
+    - xfce4-clipman-plugin
+    - papirus-icon-theme
+    - compton
+
+- name: Copy compton configuration file
+  copy:
+    src: compton/compton.conf
+    dest: /home/{{remote_user}}/.compton.conf
+    owner: '{{remote_user}}'
+    group: '{{remote_user}}'
+    mode: 'u=rw'
+
+- name: Copy default xfce4 xsettings file
+  shell: cp -n /etc/xdg/xfce4/xfconf/xfce-perchannel-xml/xsettings.xml /home/{{remote_user}}/.config/xfce4/xfconf/xfce-perchannel-xml/xsettings.xml
+
+- name: Change ownership of xfce4 xsettings file
+  file:
+    path: /home/{{remote_user}}/.config/xfce4/xfconf/xfce-perchannel-xml/xsettings.xml
+    owner: '{{remote_user}}'
+    group: '{{remote_user}}'
+    mode: 'u=rw'
+
+- name: Change xfce4 theme
+  lineinfile:
+    dest: /home/{{remote_user}}/.config/xfce4/xfconf/xfce-perchannel-xml/xsettings.xml
+    regexp: ".*name=\"ThemeName\".*"
+    line: "<property name=\"ThemeName\" type=\"string\" value=\"Adwaita-dark\"/>"
+
+- name: Change xfce icon theme
+  lineinfile:
+    dest: /home/{{remote_user}}/.config/xfce4/xfconf/xfce-perchannel-xml/xsettings.xml
+    regexp: ".*name=\"IconThemeName\".*"
+    line: "<property name=\"IconThemeName\" type=\"string\" value=\"Papirus-dark\"/>"
+
+- name: Change panel plugin settings
+  copy:
+    src: panel
+    dest: /home/{{remote_user}}/.config/xfce4/panel
+    owner: '{{remote_user}}'
+    group: '{{remote_user}}'
+    mode: 'u=rwX'
+
+- name: Change panel settings
+  copy:
+    src: xfce/xfce4-panel.xml
+    dest: /home/{{remote_user}}/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-panel.xml
+    owner: '{{remote_user}}'
+    group: '{{remote_user}}'
+    mode: 'u=rw'
+
+- name: Change xfce notification theme
+  copy:
+    src: xfce/xfce4-notifyd.xml
+    dest: /home/{{remote_user}}/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-notifyd.xml
+    owner: '{{remote_user}}'
+    group: '{{remote_user}}'
+    mode: 'u=rw'
+
+- name: Change configuration directory ownership
+  file:
+    path: /home/{{remote_user}}/.config
+    recurse: 'yes'
+    owner: '{{remote_user}}'
+    group: '{{remote_user}}'
+    mode: 'u=rwX'
